@@ -26,7 +26,7 @@
                     `${data.date},${data.time},${data.guardian},${data.subject},${data.sound}`
             )
             .join("\n");
-        const csv = `Date,Time,Guardian,Subject,Sound\n${rows}`;
+        const csv = `Date,Time,Guardian,Subject,User,Sound\n${rows}`;
         const blob = new Blob([csv], { type: "text/csv" });
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -67,29 +67,33 @@
 </svelte:head>
 
 <section>
-	<table>
-		<thead>
-			<tr>
-				<th on:click={() => handleTitleClick("date")}>Date {sortColumn === "date" ? (sortAsc ? "▲" : "▼") : ""}</th>
-				<th on:click={() => handleTitleClick("time")}>Time {sortColumn === "time" ? (sortAsc ? "▲" : "▼") : ""}</th>
-				<th on:click={() => handleTitleClick("guardian")}>Guardian {sortColumn === "guardian" ? (sortAsc ? "▲" : "▼") : ""}</th>
-				<th on:click={() => handleTitleClick("subject")}>Subject {sortColumn === "subject" ? (sortAsc ? "▲" : "▼") : ""}</th>
-				<th on:click={() => handleTitleClick("sound")}>Sound {sortColumn === "sound" ? (sortAsc ? "▲" : "▼") : ""}</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each data as item}
-			  <tr>
-				<td>{item.date}</td>
-				<td>{item.time}</td>
-				<td>{item.guardian}</td>
-				<td>{item.subject}</td>
-				<td>{item.sound}</td>
-				<!-- Add more columns as needed -->
-			  </tr>
-			{/each}
-		  </tbody>
-	</table>
+	<div class="table-container">
+		<table>
+			<thead>
+				<tr>
+					<th on:click={() => handleTitleClick("date")}>Date {sortColumn === "date" ? (sortAsc ? "▲" : "▼") : ""}</th>
+					<th on:click={() => handleTitleClick("time")}>Time {sortColumn === "time" ? (sortAsc ? "▲" : "▼") : ""}</th>
+					<th on:click={() => handleTitleClick("guardian")}>Guardian {sortColumn === "guardian" ? (sortAsc ? "▲" : "▼") : ""}</th>
+					<th on:click={() => handleTitleClick("subject")}>Subject {sortColumn === "subject" ? (sortAsc ? "▲" : "▼") : ""}</th>
+					<th on:click={() => handleTitleClick("user")}>User {sortColumn === "user" ? (sortAsc ? "▲" : "▼") : ""}</th>
+					<th on:click={() => handleTitleClick("sound")}>Sound {sortColumn === "sound" ? (sortAsc ? "▲" : "▼") : ""}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each data as item}
+				<tr>
+					<td>{item.date}</td>
+					<td>{item.time}</td>
+					<td>{item.guardian}</td>
+					<td>{item.subject}</td>
+					<td>{item.user}</td>
+					<td>{item.sound}</td>
+					<!-- Add more columns as needed -->
+				</tr>
+				{/each}
+			</tbody>
+		</table>
+	</div>
 	<button on:click={downloadCsv}>Download</button>
 
 </section>
@@ -138,6 +142,13 @@
 		bottom: 10px;
 		left: 10px;
 		cursor: pointer;
+	}
+	.table-container {
+		width: 100%;
+		height: 500px; 
+		overflow-y: auto;
+		border: 1px solid #ccc;
+		padding: 10px;
 	}
 
 
