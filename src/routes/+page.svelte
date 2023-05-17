@@ -1,5 +1,4 @@
 <script>
-	import Counter from './Counter.svelte';
 
 	import { onMount } from 'svelte';
   	import firebase from '../lib/firebase/firebase';
