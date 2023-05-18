@@ -1,15 +1,33 @@
 <script>
 
 	import { onMount } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
+
   	import firebase from '../lib/firebase/firebase';
 
 	let data = [];
+	let filteredData = [];
+
 	let sortColumn = "date";
     let sortAsc = true;
+
+	let filters = {
+		date: "",
+		time: "",
+		guardian: "",
+		subject: "",
+		user: "",
+		sound: ""
+	};
+
+	let filtersApplied = false;
+
+	const dispatch = createEventDispatcher();
 
 	onMount(async () => {
 		const snapshot = await firebase.database().ref('interactions').once('value');
 		data = Object.values(snapshot.val());
+		filteredData = [...data];
 		for (let item in data){
 			const [date, time] = (data[item].date).split(", ");
 			data[item].date = date
@@ -19,7 +37,7 @@
 	});
 
 	function downloadCsv() {
-        const rows = data
+        const rows = filteredData
             .map(
                 (data) =>
                     `${data.date},${data.time},${data.guardian},${data.subject},${data.sound}`
@@ -35,7 +53,7 @@
     }
 
 	function sortTable() {
-        data = data.sort((a, b) => {
+        filteredData = filteredData.sort((a, b) => {
             const aValue = a[sortColumn];
             const bValue = b[sortColumn];
 
@@ -58,6 +76,38 @@
 		}
 		sortTable();
 	}
+
+	function handleFilterChange(column, event) {
+		const value = event.target.value;
+		console.log(value);
+		filters[column] = value ? value.trim().toLowerCase() : '';
+		applyFilters();
+	}
+
+	function applyFilters() {
+		if (Object.values(filters).some(value => value !== '')) {
+			filteredData = data.filter(item => {
+				for (const column in filters) {
+					const filterValue = filters[column];
+					const itemValue = item[column];
+
+					if (filterValue && (itemValue === undefined || itemValue === null)) {
+						return false;
+					}
+
+					if (filterValue && !itemValue.toLowerCase().includes(filterValue)) {
+						return false;
+					}
+				}
+				return true;
+			});
+			filtersApplied = true;
+		} else {
+			filteredData = data;
+			filtersApplied = false;
+		}
+	}
+
 </script>
 
 <svelte:head>
@@ -66,6 +116,34 @@
 </svelte:head>
 
 <section>
+	<div class="filter-container"> 
+		<div class="filter-input">
+			<label>Date:</label>
+			<input type="text" bind:value={filters.date} on:input={() => handleFilterChange('date', event)} />
+		</div>
+		<div class="filter-input">
+			<label>Time:</label>
+			<input type="text" bind:value={filters.time} on:input={(event) => handleFilterChange('time', event)} />
+		</div>
+		<div class="filter-input">
+			<label>Guardian:</label>
+			<input type="text" bind:value={filters.guardian} on:input={() => handleFilterChange('guardian', event)} />
+		</div>
+		<div class="filter-input">
+			<label>Subject:</label>
+			<input type="text" bind:value={filters.subject} on:input={() => handleFilterChange('subject', event)} />
+		</div>
+		<div class="filter-input">
+			<label>User:</label>
+			<input type="text" bind:value={filters.user} on:input={(event) => handleFilterChange('user', event)} />
+		</div>
+		<div class="filter-input">
+			<label>Sound:</label>
+			<input type="text" bind:value={filters.sound} on:input={() => handleFilterChange('sound', event)} />
+		</div>
+	</div>
+	
+	
 	<div class="table-container">
 		<table>
 			<thead>
@@ -79,7 +157,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each data as item}
+				{#each filteredData as item}
 				<tr>
 					<td>{item.date}</td>
 					<td>{item.time}</td>
@@ -144,10 +222,36 @@
 	}
 	.table-container {
 		width: 100%;
-		height: 500px; 
+		height: 300px; 
 		overflow-y: auto;
 		border: 1px solid #ccc;
 		padding: 10px;
+	}
+
+	.filter-container {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		margin-bottom: 20px;
+	}
+
+	.filter-input {
+		margin-right: 10px;
+		margin-bottom: 10px;
+		display: flex;
+		align-items: center;
+		flex: 1 1 200px; /* Adjust the width as needed */
+	}
+
+	.filter-input label {
+		margin-right: 5px;
+	}
+
+	.filter-input input {
+		padding: 5px;
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		width: 100%;
 	}
 
 

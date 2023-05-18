@@ -4,7 +4,7 @@
 </script>
 
 <div class="app">
-	<!-- <Header /> -->
+	<Header title="InCA CommBoard"/>
 
 	<main>
 		<slot />
