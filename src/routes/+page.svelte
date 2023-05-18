@@ -8,12 +8,24 @@
 
 	import 'flatpickr/dist/flatpickr.css';
 
+	/**
+     * @type {any[]}
+     */
+	// list for all data
 	let data = [];
+
+	/**
+     * @type {any[]}
+     */
+	// list for all filtered data
 	let filteredData = [];
 
+	// column to sort by
 	let sortColumn = "date";
+	// sort ascending 
     let sortAsc = true;
 
+	// filters values for each column
 	let filters = {
 		time: "",
 		guardian: "",
@@ -22,26 +34,30 @@
 		sound: ""
 	};
 
+	// date filter
 	let dateFilter = {
 		startDate: null,
 		endDate: null,
 	};
 
+	/**
+     * @type {import("flatpickr/dist/types/instance").Instance | import("flatpickr/dist/types/instance").Instance[]}
+     */
 	let datepicker;
 
 	let filtersApplied = false;
 
-	const dispatch = createEventDispatcher();
-
+	// when application starts 
 	onMount(async () => {
+		// @ts-ignore
 		datepicker = flatpickr('#date-filter', {
 			mode: 'range',
 			dateFormat: 'd/m/Y',
 			onChange: handleDateFilterChange,
 		});
+		// get data from database and pass it to list
 		const snapshot = await firebase.database().ref('interactions').once('value');
 		data = Object.values(snapshot.val());
-		filteredData = [...data];
 		for (let item in data){
 			const [date, time] = data[item].date.includes(", ")
 			? data[item].date.split(", ")
@@ -49,9 +65,11 @@
 			data[item].date = date;
 			data[item].time = time;
 		}
+		filteredData = [...data];
 		sortTable();
 	});
 
+	// download csv with data
 	function downloadCsv() {
         const rows = filteredData
             .map(
@@ -68,6 +86,7 @@
         link.click();
     }
 
+	// sort table by selected column
 	function sortTable() {
         filteredData = filteredData.sort((a, b) => {
             const aValue = a[sortColumn];
@@ -83,6 +102,10 @@
         });
     }
 
+	/**
+     * @param {string} column
+     */
+	// change column to sort by when clicked
 	function handleTitleClick(column){
 		if (column === sortColumn){
 			sortAsc = !sortAsc;
@@ -93,12 +116,25 @@
 		sortTable();
 	}
 
+	/**
+     * @param {string} column
+     * @param {Event | undefined} event
+     */
+	// handle filters
 	function handleFilterChange(column, event) {
+		// @ts-ignore
 		const value = event.target.value;
 		console.log(value);
+		// @ts-ignore
 		filters[column] = value ? value.trim().toLowerCase() : '';
 		applyFilters();
 	}
+	/**
+     * @param {null[]} selectedDates
+     * @param {any} dateStr
+     * @param {any} instance
+     */
+	// handle date filters
 	function handleDateFilterChange(selectedDates, dateStr, instance) {
 		dateFilter.startDate = selectedDates[0] || null;
 		dateFilter.endDate = selectedDates[1] || null;
@@ -106,9 +142,11 @@
 		applyFilters();
 	}
 
+	// apply filters
 	function applyFilters() {
 		filteredData = data.filter(item => {
 		for (const column in filters) {
+			// @ts-ignore
 			const filterValue = filters[column];
 			if (filterValue && !item[column].toLowerCase().includes(filterValue)) {
 			return false;
@@ -126,10 +164,12 @@
 		const startDate = dateFilter.startDate;
 		const endDate = dateFilter.endDate;
 
+		// @ts-ignore
 		if (startDate && itemDate < startDate) {
 			return false;
 		}
 
+		// @ts-ignore
 		if (endDate && itemDate > endDate) {
 			return false;
 		}
@@ -137,16 +177,25 @@
 		return true;
 		});
 
+		// @ts-ignore
 		filtersApplied = Object.values(filters).some(value => value !== '') || dateFilter.startDate || dateFilter.endDate;
 	}
+
+	// clear date filters
 	function clearDateFilter() {
+		// @ts-ignore
 		datepicker.clear();
 		dateFilter.startDate = null;
 		dateFilter.endDate = null;
 		applyFilters();
 	}
 
+	/**
+     * @param {string} filter
+     */
+	// clear other filters
 	function clearFilter(filter){
+		// @ts-ignore
 		filters[filter] = "";
 		applyFilters();
 	}
@@ -159,42 +208,50 @@
 </svelte:head>
 
 <section>
+	<!-- container for all filters -->
 	<div class="filter-container"> 
 		<div class="filter-input">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
 			<label>Date:</label>
 			<input type="text" id="date-filter" readonly />
 			<button class="clear-button" on:click={clearDateFilter}></button>
 		</div>
 		<div class="filter-input">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
 			<label>Time:</label>
 			<input type="text" bind:value={filters.time} on:input={(event) => handleFilterChange('time', event)} />
 			<button class="clear-button" on:click={() => clearFilter('time')}></button>
 		</div>
+			<!-- svelte-ignore a11y-label-has-associated-control -->
 		<div class="filter-input">
 			<label>Guardian:</label>
 			<input type="text" bind:value={filters.guardian} on:input={() => handleFilterChange('guardian', event)} />
 			<button class="clear-button" on:click={() => clearFilter('guardian')}></button>
 		</div>
 		<div class="filter-input">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
 			<label>Subject:</label>
 			<input type="text" bind:value={filters.subject} on:input={() => handleFilterChange('subject', event)} />
 			<button class="clear-button" on:click={() => clearFilter('subject')}></button>
 		</div>
 		<div class="filter-input">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
 			<label>User:</label>
 			<input type="text" bind:value={filters.user} on:input={(event) => handleFilterChange('user', event)} />
 			<button class="clear-button" on:click={() => clearFilter('user')}></button>
 		</div>
 		<div class="filter-input">
+			<!-- svelte-ignore a11y-label-has-associated-control -->
 			<label>Sound:</label>
 			<input type="text" bind:value={filters.sound} on:input={() => handleFilterChange('sound', event)} />
 			<button class="clear-button" on:click={() => clearFilter('sound')}></button>
 		</div>
 	</div>
 	
-	
+	<!-- container for the table -->
 	<div class="table-container">
 		<table>
+			<!-- table titles -->
 			<thead>
 				<tr>
 					<th on:click={() => handleTitleClick("date")}>Date {sortColumn === "date" ? (sortAsc ? "▲" : "▼") : ""}</th>
@@ -205,6 +262,7 @@
 					<th on:click={() => handleTitleClick("sound")}>Sound {sortColumn === "sound" ? (sortAsc ? "▲" : "▼") : ""}</th>
 				</tr>
 			</thead>
+			<!-- table data -->
 			<tbody>
 				{#each filteredData as item}
 				<tr>
@@ -214,12 +272,12 @@
 					<td>{item.subject}</td>
 					<td>{item.user}</td>
 					<td>{item.sound}</td>
-					<!-- Add more columns as needed -->
 				</tr>
 				{/each}
 			</tbody>
 		</table>
 	</div>
+	<!-- button for download -->
 	<button class="download" on:click={downloadCsv}>Download</button>
 
 </section>
