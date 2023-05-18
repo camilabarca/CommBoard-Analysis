@@ -4,6 +4,9 @@
 	import { createEventDispatcher } from 'svelte';
 
   	import firebase from '../lib/firebase/firebase';
+	import flatpickr from 'flatpickr';
+
+	import 'flatpickr/dist/flatpickr.css';
 
 	let data = [];
 	let filteredData = [];
@@ -12,7 +15,6 @@
     let sortAsc = true;
 
 	let filters = {
-		date: "",
 		time: "",
 		guardian: "",
 		subject: "",
@@ -20,18 +22,32 @@
 		sound: ""
 	};
 
+	let dateFilter = {
+		startDate: null,
+		endDate: null,
+	};
+
+	let datepicker;
+
 	let filtersApplied = false;
 
 	const dispatch = createEventDispatcher();
 
 	onMount(async () => {
+		datepicker = flatpickr('#date-filter', {
+			mode: 'range',
+			dateFormat: 'd/m/Y',
+			onChange: handleDateFilterChange,
+		});
 		const snapshot = await firebase.database().ref('interactions').once('value');
 		data = Object.values(snapshot.val());
 		filteredData = [...data];
 		for (let item in data){
-			const [date, time] = (data[item].date).split(", ");
-			data[item].date = date
-			data[item].time = time
+			const [date, time] = data[item].date.includes(", ")
+			? data[item].date.split(", ")
+			: data[item].date.split(" ");
+			data[item].date = date;
+			data[item].time = time;
 		}
 		sortTable();
 	});
@@ -83,29 +99,56 @@
 		filters[column] = value ? value.trim().toLowerCase() : '';
 		applyFilters();
 	}
+	function handleDateFilterChange(selectedDates, dateStr, instance) {
+		dateFilter.startDate = selectedDates[0] || null;
+		dateFilter.endDate = selectedDates[1] || null;
+		console.log(dateFilter);
+		applyFilters();
+	}
 
 	function applyFilters() {
-		if (Object.values(filters).some(value => value !== '')) {
-			filteredData = data.filter(item => {
-				for (const column in filters) {
-					const filterValue = filters[column];
-					const itemValue = item[column];
-
-					if (filterValue && (itemValue === undefined || itemValue === null)) {
-						return false;
-					}
-
-					if (filterValue && !itemValue.toLowerCase().includes(filterValue)) {
-						return false;
-					}
-				}
-				return true;
-			});
-			filtersApplied = true;
-		} else {
-			filteredData = data;
-			filtersApplied = false;
+		filteredData = data.filter(item => {
+		for (const column in filters) {
+			const filterValue = filters[column];
+			if (filterValue && !item[column].toLowerCase().includes(filterValue)) {
+			return false;
+			}
 		}
+
+		const dateString = item.date;
+		const parts = dateString.split("/");
+		const day = parseInt(parts[0], 10);
+		const month = parseInt(parts[1], 10) - 1; // Month is zero-based (0-11)
+		const year = parseInt(parts[2], 10);
+
+		const itemDate = new Date(year, month, day);
+
+		const startDate = dateFilter.startDate;
+		const endDate = dateFilter.endDate;
+
+		if (startDate && itemDate < startDate) {
+			return false;
+		}
+
+		if (endDate && itemDate > endDate) {
+			return false;
+		}
+
+		return true;
+		});
+
+		filtersApplied = Object.values(filters).some(value => value !== '') || dateFilter.startDate || dateFilter.endDate;
+	}
+	function clearDateFilter() {
+		datepicker.clear();
+		dateFilter.startDate = null;
+		dateFilter.endDate = null;
+		applyFilters();
+	}
+
+	function clearFilter(filter){
+		filters[filter] = "";
+		applyFilters();
 	}
 
 </script>
@@ -119,27 +162,33 @@
 	<div class="filter-container"> 
 		<div class="filter-input">
 			<label>Date:</label>
-			<input type="text" bind:value={filters.date} on:input={() => handleFilterChange('date', event)} />
+			<input type="text" id="date-filter" readonly />
+			<button class="clear-button" on:click={clearDateFilter}></button>
 		</div>
 		<div class="filter-input">
 			<label>Time:</label>
 			<input type="text" bind:value={filters.time} on:input={(event) => handleFilterChange('time', event)} />
+			<button class="clear-button" on:click={() => clearFilter('time')}></button>
 		</div>
 		<div class="filter-input">
 			<label>Guardian:</label>
 			<input type="text" bind:value={filters.guardian} on:input={() => handleFilterChange('guardian', event)} />
+			<button class="clear-button" on:click={() => clearFilter('guardian')}></button>
 		</div>
 		<div class="filter-input">
 			<label>Subject:</label>
 			<input type="text" bind:value={filters.subject} on:input={() => handleFilterChange('subject', event)} />
+			<button class="clear-button" on:click={() => clearFilter('subject')}></button>
 		</div>
 		<div class="filter-input">
 			<label>User:</label>
 			<input type="text" bind:value={filters.user} on:input={(event) => handleFilterChange('user', event)} />
+			<button class="clear-button" on:click={() => clearFilter('user')}></button>
 		</div>
 		<div class="filter-input">
 			<label>Sound:</label>
 			<input type="text" bind:value={filters.sound} on:input={() => handleFilterChange('sound', event)} />
+			<button class="clear-button" on:click={() => clearFilter('sound')}></button>
 		</div>
 	</div>
 	
@@ -171,7 +220,7 @@
 			</tbody>
 		</table>
 	</div>
-	<button on:click={downloadCsv}>Download</button>
+	<button class="download" on:click={downloadCsv}>Download</button>
 
 </section>
 
@@ -208,7 +257,7 @@
 	tr:hover {
 		background-color: #e9e9e9;
 	}
-	button {
+	.download {
 		padding: 10px 20px;
 		background-color: #4a90e2;
 		color: #fff;
@@ -222,7 +271,7 @@
 	}
 	.table-container {
 		width: 100%;
-		height: 300px; 
+		height: 350px; 
 		overflow-y: auto;
 		border: 1px solid #ccc;
 		padding: 10px;
@@ -252,6 +301,19 @@
 		border: 1px solid #ccc;
 		border-radius: 4px;
 		width: 100%;
+	}
+	.clear-button {
+		background: none;
+		border: none;
+		padding: 5px;
+		font: inherit;
+		color: #666;
+		cursor: pointer;
+		outline: none;
+	}
+
+	.clear-button::before {
+		content: "×";
 	}
 
 
