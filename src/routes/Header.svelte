@@ -32,7 +32,7 @@
 	<div class="contact">
 		<div class="contact-info">
 			<p>Camila Labarca</p>
-			<a href="https://github.com/camilabarca/CommBoard-Front">Github repository</a>
+			<a href="https://github.com/camilabarca/CommBoard-Analysis/tree/master">Github repository</a>
 			<p>camila.labarca@ug.uchile.cl</p>
 		</div>
 		<div class="contact-info">
